@@ -25,7 +25,7 @@ final class WriteTask implements Task
     public function run(Channel $channel, Cancellation $cancellation): mixed
     {
         $file = $this->generator->generate($this->config);
-        $file->save();
+        $file->save($this->config->force);
 
         return $file;
     }

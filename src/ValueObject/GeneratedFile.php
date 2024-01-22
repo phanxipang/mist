@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Fansipan\Mist\ValueObject;
 
+use Fansipan\Mist\Exception\FileExistedException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
@@ -18,8 +19,14 @@ final class GeneratedFile
         $this->name = \is_array($name) ? Path::join(...\array_filter($name)) : $name;
     }
 
-    public function save(): void
+    public function save(bool $force = false): void
     {
-        (new Filesystem())->dumpFile($this->name, $this->content);
+        $fs = new Filesystem();
+
+        if ($force && $fs->exists($this->name)) {
+            throw new FileExistedException('File is already exists.');
+        }
+
+        $fs->dumpFile($this->name, $this->content);
     }
 }
