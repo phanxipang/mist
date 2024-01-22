@@ -1,0 +1,9 @@
+output:
+  directory: generated
+  paths:
+    src: /src
+    tests: /tests
+  files:
+    connector: Connector.php
+options:
+  groupRequestsByTag: true

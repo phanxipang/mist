@@ -1,0 +1,79 @@
+{
+    "name": "fansipan/mist",
+    "description": "Fansipan SDK generator from OpenAPI spec",
+    "keywords": [
+        "fansipan",
+        "sdk",
+        "openapi",
+        "generator"
+    ],
+    "homepage": "https://github.com/phanxipang/mist",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lynh",
+            "email": "contact@lynh.me",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "amphp/parallel": "^2.2",
+        "amphp/pipeline": "^1.1",
+        "archtechx/enums": "^1.0",
+        "beberlei/assert": "^3.3",
+        "cebe/php-openapi": "^1.7",
+        "cuyz/valinor": "^1.8",
+        "fansipan/fansipan": "^0.8",
+        "illuminate/support": "^10.41",
+        "nette/php-generator": "^3.6|^4.0"
+    },
+    "require-dev": {
+        "jolicode/castor": "^0.10.0",
+        "friendsofphp/php-cs-fixer": "^3.20",
+        "phpstan/phpstan": "^1.10",
+        "phpunit/phpunit": "^9.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Fansipan\\Mist\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Fansipan\\Mist\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "analyse": [
+            "vendor/bin/phpstan analyse"
+        ],
+        "cs": [
+            "vendor/bin/php-cs-fixer fix"
+        ],
+        "test": [
+            "vendor/bin/phpunit"
+        ],
+        "coverage": [
+            "vendor/bin/phpunit --coverage"
+        ],
+        "check": [
+            "@cs --dry-run",
+            "@analyse",
+            "@test"
+        ]
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
