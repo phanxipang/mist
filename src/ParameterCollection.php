@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Fansipan\Mist\ValueObject;
+namespace Fansipan\Mist;
 
 use cebe\openapi\spec\Parameter;
 use cebe\openapi\spec\Reference;
@@ -26,6 +26,11 @@ final class ParameterCollection extends LazyCollection
     public function inQuery(): static
     {
         return $this->filter(static fn (Parameter $param) => $param->in === 'query');
+    }
+
+    public function isCookie(): static
+    {
+        return $this->filter(static fn (Parameter $param) => $param->in === 'cookie');
     }
 
     /**

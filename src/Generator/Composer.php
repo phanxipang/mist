@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Fansipan\Mist\Generator;
 
-use Fansipan\Mist\ValueObject\Config;
-use Fansipan\Mist\ValueObject\GeneratedFile;
+use cebe\openapi\spec\Info;
+use Fansipan\Mist\Config\Config;
+use Fansipan\Mist\GeneratedFile;
 
 final class Composer implements GeneratorInterface
 {
-    public function __construct(private readonly string $phpVersion = '^8.1')
+    public function __construct(private readonly ?Info $info = null)
     {
     }
 
@@ -17,11 +18,11 @@ final class Composer implements GeneratorInterface
     {
         $content = \json_encode([
             'name' => $name = sprintf('%s/%s', $config->package->vendor, $config->package->name),
-            'description' => $config->package->description,
+            'description' => $config->package->description ?: $this->info?->description,
             'homepage' => sprintf('https://github.com/%s', $name),
-            'license' => 'MIT',
+            'license' => $this->info?->license?->name ?? 'MIT',
             'require' => [
-                'php' => $this->phpVersion,
+                'php' => $config->package->phpVersion,
                 'fansipan/fansipan' => '^0.8',
             ],
             'autoload' => [

@@ -10,9 +10,9 @@ use Amp\Parallel\Worker\Task;
 use Amp\Pipeline\Pipeline;
 use cebe\openapi\Reader;
 use cebe\openapi\spec\OpenApi;
+use Fansipan\Mist\Config\Config;
 use Fansipan\Mist\Generator\GeneratorFactoryInterface;
 use Fansipan\Mist\Generator\GeneratorInterface;
-use Fansipan\Mist\ValueObject\Config;
 
 final class Runner
 {

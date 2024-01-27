@@ -6,8 +6,8 @@ namespace Fansipan\Mist\Generator;
 
 use Assert\Assertion;
 use Fansipan\Contracts\ConnectorInterface;
-use Fansipan\Mist\ValueObject\Config;
-use Fansipan\Mist\ValueObject\GeneratedFile;
+use Fansipan\Mist\Config\Config;
+use Fansipan\Mist\GeneratedFile;
 use Fansipan\Traits\ConnectorTrait;
 
 final class Connector implements GeneratorInterface
@@ -29,15 +29,14 @@ final class Connector implements GeneratorInterface
 
         $class = $namespace->addClass('Connector');
 
-        $class->setFinal()
-            ->addImplement(ConnectorInterface::class)
+        $class->addImplement(ConnectorInterface::class)
             ->addTrait(ConnectorTrait::class);
 
         $method = $class->addMethod('baseUri');
         $method->setStatic()
             ->setReturnType('string')
             ->setReturnNullable(true)
-            ->addBody($this->literal('return ?;', $this->baseUri));
+            ->addBody('return ?;', [$this->baseUri]);
 
         return new GeneratedFile(
             [$config->output->directory, $config->output->paths->src, 'Connector.php'],

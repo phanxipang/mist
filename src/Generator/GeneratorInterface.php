@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Fansipan\Mist\Generator;
 
-use Fansipan\Mist\ValueObject\Config;
-use Fansipan\Mist\ValueObject\GeneratedFile;
+use Fansipan\Mist\Config\Config;
+use Fansipan\Mist\GeneratedFile;
 
 interface GeneratorInterface
 {

@@ -8,10 +8,11 @@ use cebe\openapi\spec\Operation;
 use cebe\openapi\spec\Parameter;
 use cebe\openapi\spec\Reference;
 use cebe\openapi\spec\Schema;
+use Fansipan\Mist\Config\Config;
+use Fansipan\Mist\GeneratedFile;
+use Fansipan\Mist\ParameterCollection;
 use Fansipan\Mist\ParameterType;
-use Fansipan\Mist\ValueObject\Config;
-use Fansipan\Mist\ValueObject\GeneratedFile;
-use Fansipan\Mist\ValueObject\ParameterCollection;
+use Fansipan\Mist\PhpFeature;
 use Fansipan\Request as AbstractRequest;
 use Illuminate\Support\Str;
 use Nette\PhpGenerator\ClassType;
@@ -62,7 +63,7 @@ final class Request implements GeneratorInterface
             ->setExtends(AbstractRequest::class)
             ->addComment($this->spec->description);
 
-        $this->addConstructorParameters($class);
+        $this->addConstructorParameters($class, $config->package->minimumPhpVersion);
         $this->addEndpointMethod($class);
         $this->addVerbMethod($class);
         $this->addQueryMethod($class);
@@ -79,33 +80,87 @@ final class Request implements GeneratorInterface
         return $this->parameters ??= ParameterCollection::tryFrom($this->spec->parameters);
     }
 
-    private function addConstructorParameters(ClassType $class): void
+    private function addConstructorParameters(ClassType $class, string $minimumPhpVersion): void
     {
         if ($this->parameters()->isEmpty()) {
             return;
         }
 
+        $feature = new PhpFeature($minimumPhpVersion);
         $method = $class->addMethod('__construct');
 
         foreach ($this->parameters()->sortByDesc('required') as $parameter) {
-            $property = $method->addPromotedParameter($parameter->name)
-                ->setNullable(! $parameter->required)
-                ->setPrivate();
-
             $schema = $parameter->schema instanceof Reference
                 ? $parameter->schema->resolve()
                 : $parameter->schema;
 
-            if ($schema instanceof Schema) {
-                $paramType = (string) new ParameterType($schema);
-                $property->setType($paramType);
+            \assert($schema instanceof Schema);
+
+            $paramType = (string) ParameterType::fromSchema($schema);
+
+            $constants = [];
+
+            if (! empty($schema->enum)) {
+                foreach ($schema->enum as $value) {
+                    $class->addConstant(
+                        $const = Str::of(sprintf('%s %s', $parameter->name, $value))->snake()->upper()->toString(),
+                        $value
+                    );
+
+                    $constants[$value] = new Literal('self::?', [$const]);
+                }
+
+                $method->addBody('\assert(\in_array($?, ?, true));', [$parameter->name, \array_values($constants)]);
+                $method->addBody('');
             }
+
+            if ($feature->supportConstructorPropertyPromotion()) {
+                $param = $method->addPromotedParameter($parameter->name)
+                    ->setPrivate();
+            } else {
+                $param = $method->addParameter($parameter->name);
+                $property = $class->addProperty($parameter->name)
+                    ->setPrivate()
+                    ->setNullable(! $parameter->required && \is_null($schema->default));
+
+                if ($paramType) {
+                    if ($feature->supportTypedProperties()) {
+                        $property->setType($paramType);
+                    } else {
+                        $property->addComment('@var '.$paramType);
+                    }
+                }
+
+                $method->addBody('$this->? = $?;', [$parameter->name, $parameter->name]);
+            }
+
+            if ($paramType) {
+                $param->setType($paramType);
+            }
+
+            $param->setNullable(! $parameter->required && \is_null($schema->default));
+
+            $default = $constants[$schema->default] ?? $schema->default;
+
+            if ($default) {
+                $param->setDefaultValue($default);
+            }
+
+            if ($param->isNullable()) {
+                $param->setDefaultValue(null);
+            }
+
+            // !Bug: invalid `getType`
+            // $method->addComment(sprintf('@param  %s $%s  %s', $param->getType(), $param->getName(), $parameter->description));
         }
     }
 
     private function addEndpointMethod(ClassType $class): void
     {
         \preg_match_all('/{\K[^}]*(?=})/m', $this->path, $matches);
+
+        $method = $class->addMethod('endpoint')
+            ->setReturnType('string');
 
         if (! empty($matches[0])) {
             // $params = \array_filter($spec->parameters, static fn (Parameter $param): bool => $param->in === 'path');
@@ -115,21 +170,17 @@ final class Request implements GeneratorInterface
             $params = \array_map(static fn (string $s) => new Literal('$this->?', [$s]), $matches[0]);
 
             $endpoint = Str::of($this->path)->replace($search, $replace);
-            $body = $this->literal('return sprintf(?, ...?:);', (string) $endpoint, $params);
+            $method->addBody('return sprintf(?, ...?:);', [(string) $endpoint, $params]);
         } else {
-            $body = $this->literal('return ?;', $this->path);
+            $method->addBody('return ?;', [$this->path]);
         }
-
-        $method = $class->addMethod('endpoint');
-        $method->setReturnType('string')
-            ->addBody($body);
     }
 
     private function addVerbMethod(ClassType $class): void
     {
         $method = $class->addMethod('method');
         $method->setReturnType('string')
-            ->addBody($this->literal('return ?;', \mb_strtoupper($this->method)));
+            ->addBody('return ?;', [\mb_strtoupper($this->method)]);
     }
 
     private function addQueryMethod(ClassType $class): void
@@ -146,6 +197,6 @@ final class Request implements GeneratorInterface
         $method = $class->addMethod('defaultQuery');
         $method->setReturnType('array')
             ->setProtected()
-            ->addBody(sprintf('return \\array_filter(%s);', $dumper->dump($query->toArray())));
+            ->addBody('return \array_filter(?);', [$query->toArray()]);
     }
 }

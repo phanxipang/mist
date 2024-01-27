@@ -24,9 +24,7 @@ final class ConsoleGeneratorFactory implements GeneratorFactoryInterface
     {
         \assert($spec instanceof OpenApi);
 
-        $phpVersion = $this->io->ask('Please specify your PHP version constraint', '^8.1');
-
-        yield new Composer($phpVersion);
+        yield new Composer($spec->info);
 
         yield $this->createConnectorGenerator($spec);
 
@@ -41,7 +39,7 @@ final class ConsoleGeneratorFactory implements GeneratorFactoryInterface
                 $spec->servers
             );
 
-            $url = $this->io->choice('Please select base url', $urls);
+            $url = $this->io->choice('Please select base url', $urls, $urls[0]);
         } else {
             $url = $spec->servers[0]->url;
         }

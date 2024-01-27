@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Fansipan\Mist\ValueObject;
+namespace Fansipan\Mist\Config;
 
 final class Config
 {
@@ -12,7 +12,7 @@ final class Config
         public readonly string $spec,
         public readonly Output $output,
         public readonly PackageMetadata $package,
-        public readonly bool $force = false,
+        public readonly bool $force = true,
     ) {
     }
 }

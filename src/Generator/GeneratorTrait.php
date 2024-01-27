@@ -23,8 +23,8 @@ trait GeneratorTrait
         return (new PsrPrinter())->printFile($file);
     }
 
-    protected function literal(string $str, mixed ...$args): string
+    /* protected function literal(string $str, mixed ...$args): string
     {
         return (string) new Literal($str, \count($args) ? $args : null);
-    }
+    } */
 }

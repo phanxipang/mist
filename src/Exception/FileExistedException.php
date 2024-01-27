@@ -6,5 +6,4 @@ namespace Fansipan\Mist\Exception;
 
 final class FileExistedException extends \RuntimeException
 {
-
 }

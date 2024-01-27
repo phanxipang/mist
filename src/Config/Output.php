@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Fansipan\Mist\ValueObject;
+namespace Fansipan\Mist\Config;
 
 use CuyZ\Valinor\MapperBuilder;
 use Symfony\Component\Filesystem\Path;

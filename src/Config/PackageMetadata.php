@@ -2,15 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Fansipan\Mist\ValueObject;
+namespace Fansipan\Mist\Config;
 
+use Assert\Assertion;
+use Composer\Semver\VersionParser;
 use Symfony\Component\Filesystem\Path;
 
 final class PackageMetadata
 {
     public readonly string $namespace;
 
+    public readonly string $minimumPhpVersion;
+
     public function __construct(
+        public readonly string $phpVersion,
         public readonly string $vendor,
         public readonly string $name,
         public readonly string $description = '',
@@ -18,6 +23,8 @@ final class PackageMetadata
         public readonly ?Author $author = null,
     ) {
         $this->namespace = $namespace ?? (\ucwords($vendor).'\\'.\ucwords($name));
+        $constraint = (new VersionParser())->parseConstraints($phpVersion);
+        $this->minimumPhpVersion = $constraint->getLowerBound()->getVersion();
     }
 
     public static function fromComposer(string $path): self
@@ -33,10 +40,16 @@ final class PackageMetadata
         $content = \json_decode(\file_get_contents($file) ?: '', true);
         [$vendor, $name] = \explode('/', $content['name']);
 
+        Assertion::keyExists($content['require'], 'php');
+        $author = $content['authors'][0] ?? [];
+
         return new self(
+            $content['require']['php'],
             $vendor,
             $name,
             $content['description'] ?? '',
+            null,
+            new Author($author['name'] ?? '', $author['email'] ?? '', $vendor)
         );
     }
 }

@@ -7,9 +7,8 @@ namespace Fansipan\Mist;
 use Amp\Cancellation;
 use Amp\Parallel\Worker\Task;
 use Amp\Sync\Channel;
+use Fansipan\Mist\Config\Config;
 use Fansipan\Mist\Generator\GeneratorInterface;
-use Fansipan\Mist\ValueObject\Config;
-use Fansipan\Mist\ValueObject\GeneratedFile;
 
 final class WriteTask implements Task
 {

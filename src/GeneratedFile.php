@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Fansipan\Mist\ValueObject;
+namespace Fansipan\Mist;
 
 use Fansipan\Mist\Exception\FileExistedException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -23,7 +23,7 @@ final class GeneratedFile
     {
         $fs = new Filesystem();
 
-        if ($force && $fs->exists($this->name)) {
+        if (! $force && $fs->exists($this->name)) {
             throw new FileExistedException('File is already exists.');
         }
 
