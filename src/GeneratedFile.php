@@ -10,7 +10,7 @@ use Symfony\Component\Filesystem\Path;
 
 final class GeneratedFile
 {
-    private readonly string $name;
+    public readonly string $name;
 
     public function __construct(
         string|array $name,

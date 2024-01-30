@@ -4,24 +4,25 @@ declare(strict_types=1);
 
 namespace App\Commands;
 
+use Assert\Assertion;
 use Fansipan\Mist\Config\Author;
 use Fansipan\Mist\Config\Config;
 use Fansipan\Mist\Config\Output;
 use Fansipan\Mist\Config\PackageMetadata;
 use Fansipan\Mist\Generator\GeneratorFactoryInterface;
 use Fansipan\Mist\Runner;
-use function Termwind\{render};
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Console\PromptsForMissingInput;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
+use Laravel\Prompts;
 use LaravelZero\Framework\Commands\Command;
 use Symfony\Component\Filesystem\Path;
 
-use Termwind\Termwind;
-
 final class GenerateCommand extends Command implements PromptsForMissingInput
 {
+    use CommandTrait;
+
     /**
      * The signature of the command.
      *
@@ -31,7 +32,7 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
                             {spec : Path to the API specification file to generate the SDK from}
                             {--o|output=./generated : The output path where the code will be created, will be created if it does not exist}
                             {--c|config= : The configuration file path.}
-                            {--force : Force overwriting existing files}';
+                            {--f|force : Force overwriting existing files}';
 
     /**
      * The description of the command.
@@ -47,73 +48,16 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
      */
     public function handle(GeneratorFactoryInterface $factory)
     {
-        render('<div class="m-1 px-1 bg-green-300">Fansipan Mist</div>');
+        $this->render('<div class="m-1 px-1 bg-green-300">Fansipan Mist</div>');
 
         $outputDir = $this->resolvePath($this->option('output'));
 
-        if ($config = $this->option('config')) {
-            $configFile = $this->resolvePath($config);
-            $this->warn('Output directory from configuration file have been overridden by output directory provided as command arguments.');
-            $output = Output::fromYamlFile($configFile, ['directory' => $outputDir]);
-        } else {
-            $output = Output::fromArray(['directory' => $outputDir]);
-        }
-
         try {
-            $packageMetadata = PackageMetadata::fromComposer($outputDir);
-        } catch (\Throwable $e) {
-            $gitName = Process::run('git config user.name');
-            $authorName = $this->ask('Author name', \trim($gitName->output()));
-
-            $gitEmail = Process::run('git config user.email');
-            $authorEmail = $this->ask('Author email', \trim($gitEmail->output()));
-
-            $gitUsername = Process::run('git config remote.origin.url');
-            $usernameGuess = null;
-
-            if ($gitUsername->successful()) {
-                $usernameGuess = \explode(':', $gitUsername->output())[1] ?? '';
-                $usernameGuess = \dirname($usernameGuess);
-                $usernameGuess = \basename($usernameGuess);
-            }
-
-            $authorUsername = $this->ask('Author username', $usernameGuess);
-
-            $currentDirectory = \getcwd();
-            $folderName = \basename($currentDirectory);
-
-            $packageName = $this->ask('Package name', $folderName);
-            $packageNamespace = Str::studly($packageName);
-            $description = $this->ask('Package description', "This is my package {$packageName}");
-
-            $vendorName = $this->ask('Vendor name', $authorUsername);
-
-            $vendorNamespace = \ucwords($vendorName);
-            $vendorNamespace = $this->ask('Vendor namespace', $vendorNamespace);
-
-            $phpVersion = $this->ask('PHP Version constraint', '^7.2.5 | ^8.1');
-
-            $packageMetadata = new PackageMetadata(
-                $phpVersion,
-                $vendorName,
-                $packageName,
-                $description,
-                $vendorNamespace.'\\'.$packageNamespace,
-                new Author($authorName, $authorEmail, $authorUsername)
-            );
-        }
-
-        try {
-            $spec = $this->argument('spec');
-
-            if (\filter_var($spec, \FILTER_VALIDATE_URL) !== false) {
-                // continue;
-            } else {
-                $spec = $this->resolvePath($spec);
-            }
-
             $config = new Config(
-                $spec, $output, $packageMetadata
+                $this->resolveSpec(),
+                $this->resolveOutput($outputDir),
+                $this->resolvePackageMetadata($outputDir),
+                (bool) $this->option('force')
             );
 
             $results = (new Runner($factory))->run($config);
@@ -131,16 +75,22 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
                     $messages[] = $exception->getOriginalTraceAsString();
                 }
 
-                render((string) Termwind::ul($messages));
+                $this->getOutput()->error($messages);
             }
 
-            render((string) view('message', [
+            $this->render(view('message', [
                 'label' => 'OK',
                 'message' => sprintf('SDK generated successfully at <span class="text-blue-300">%s</span>', $config->output->directory),
             ]));
 
+            if ($this->getOutput()->isVerbose()) {
+                $this->render(view('files', [
+                    'files' => $results[1] ?? [],
+                    'outputDir' => $outputDir,
+                ]));
+            }
+
             return self::SUCCESS;
-            // io()->listing(\array_map(static fn (GeneratedFile $file): string => $file->name, $results[1] ?? 0));
         } catch (\Throwable $e) {
             $this->error($e);
 
@@ -151,6 +101,124 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
     private function resolvePath(string $path): string
     {
         return Path::isAbsolute(Path::canonicalize($path)) ? $path : Path::join(\getcwd(), $path);
+    }
+
+    private function resolveSpec(): string
+    {
+        $spec = $this->argument('spec');
+
+        if (\filter_var($spec, \FILTER_VALIDATE_URL) !== false) {
+            return $spec;
+        }
+
+        return $this->resolvePath($spec);
+    }
+
+    private function resolveOutput(string $outputDir): Output
+    {
+        $config = $this->option('config');
+
+        if (! $config) {
+            return Output::fromArray(['directory' => $outputDir]);
+        }
+
+        $configFile = $this->resolvePath($config);
+        $this->warn('Output directory from configuration file have been overridden by output directory provided as command arguments.');
+
+        return Output::fromYamlFile($configFile, ['directory' => $outputDir]);
+    }
+
+    private function resolvePackageMetadata(string $outputDir): PackageMetadata
+    {
+        try {
+            return PackageMetadata::fromComposer($outputDir);
+        } catch (\Throwable) {
+            $gitName = Process::run('git config user.name');
+            $authorName = Prompts\text(
+                label: 'Author name',
+                placeholder: 'Please enter your name',
+                default: \trim($gitName->output()),
+                required: true,
+            );
+
+            $gitEmail = Process::run('git config user.email');
+            $authorEmail = Prompts\text(
+                label: 'Author email',
+                placeholder: 'Please enter your e-mail address',
+                default: \trim($gitEmail->output()),
+                required: true,
+                validate: self::assert(static fn (string $value) => Assertion::email($value)),
+            );
+
+            $gitUsername = Process::run('git config remote.origin.url');
+            $usernameGuess = null;
+
+            if ($gitUsername->successful()) {
+                $usernameGuess = \explode(':', $gitUsername->output())[1] ?? '';
+                $usernameGuess = \dirname($usernameGuess);
+                $usernameGuess = \basename($usernameGuess);
+            }
+
+            $authorUsername = Prompts\text(
+                label: 'Author username',
+                placeholder: 'Please enter your Git username',
+                default: $usernameGuess,
+                required: true,
+                validate: self::assert(static fn (string $value) => Assertion::alnum($value)),
+            );
+
+            $currentDirectory = \getcwd();
+            $folderName = \basename($currentDirectory);
+
+            $packageName = Prompts\text(
+                label: 'Package name',
+                placeholder: 'Please enter your package name',
+                default: $folderName,
+                required: true,
+                validate: self::assert(static fn (string $value) => Assertion::alnum($value)),
+            );
+            $packageNamespace = Str::studly($packageName);
+
+            $description = Prompts\text(
+                label: 'Package description',
+                placeholder: 'Please enter your package description',
+                default: "This is my package {$packageName}",
+                required: true,
+            );
+
+            $vendorName = Prompts\text(
+                label: 'Vendor name',
+                placeholder: 'Please enter your vendor name',
+                default: $authorUsername,
+                required: true,
+                validate: self::assert(static fn (string $value) => Assertion::alnum($value)),
+            );
+
+            $vendorNamespace = \ucwords($vendorName);
+            $vendorNamespace = Prompts\text(
+                label: 'Vendor namespace',
+                placeholder: 'Please enter your vendor namespace',
+                default: $vendorNamespace,
+                required: true,
+            );
+
+            $phpVersion = Prompts\text(
+                label: 'PHP Version constraint',
+                placeholder: 'Please enter your PHP version constraints',
+                default: '^7.2.5 | ^8.1',
+                required: true,
+                hint: 'Your supported PHP version(s)'
+            );
+
+            return new PackageMetadata(
+                $phpVersion,
+                $vendorName,
+                $packageName,
+                $description,
+                $vendorNamespace.'\\'.$packageNamespace,
+                new Author($authorName, $authorEmail, $authorUsername)
+            );
+        }
     }
 
     /**

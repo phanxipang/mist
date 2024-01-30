@@ -12,7 +12,7 @@ final class Config
         public readonly string $spec,
         public readonly Output $output,
         public readonly PackageMetadata $package,
-        public readonly bool $force = true,
+        public readonly bool $force = false,
     ) {
     }
 }
