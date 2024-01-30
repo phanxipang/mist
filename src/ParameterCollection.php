@@ -34,7 +34,7 @@ final class ParameterCollection extends LazyCollection
     }
 
     /**
-     * @param  iterable<Parameter> $parameters
+     * @param  iterable<Parameter>  $parameters
      */
     public static function from(iterable $parameters): static
     {

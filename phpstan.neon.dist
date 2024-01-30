@@ -1,8 +1,10 @@
 includes:
     - phpstan-baseline.neon
+    - vendor/larastan/larastan/extension.neon
 
 parameters:
     paths:
+        - app
         - src
 
     # The level 9 is the highest level

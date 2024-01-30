@@ -23,33 +23,38 @@
         "archtechx/enums": "^1.0",
         "beberlei/assert": "^3.3",
         "cebe/php-openapi": "^1.7",
+        "composer/semver": "^3.4",
         "cuyz/valinor": "^1.8",
         "fansipan/fansipan": "^0.8",
-        "illuminate/support": "^10.41",
-        "nette/php-generator": "^3.6|^4.0"
+        "illuminate/view": "^10.0",
+        "laravel-zero/framework": "^10.2",
+        "nette/php-generator": "^3.6|^4.0",
+        "nunomaduro/termwind": "^1.15.1",
+        "symfony/filesystem": "^7.0"
     },
     "require-dev": {
-        "jolicode/castor": "^0.10.0",
-        "friendsofphp/php-cs-fixer": "^3.20",
-        "phpstan/phpstan": "^1.10",
-        "phpunit/phpunit": "^9.6"
+        "larastan/larastan": "^2.8",
+        "laravel/pint": "^1.13",
+        "mockery/mockery": "^1.6",
+        "pestphp/pest": "^2.22"
     },
     "autoload": {
         "psr-4": {
-            "Fansipan\\Mist\\": "src"
+            "App\\": "app/",
+            "Fansipan\\Mist\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Fansipan\\Mist\\Tests\\": "tests"
+            "Fansipan\\Mist\\Tests\\": "tests/"
         }
     },
     "scripts": {
         "analyse": [
-            "vendor/bin/phpstan analyse"
+            "vendor/bin/phpstan analyse --memory-limit=-1"
         ],
         "cs": [
-            "vendor/bin/php-cs-fixer fix"
+            "vendor/bin/pint"
         ],
         "test": [
             "vendor/bin/phpunit"
@@ -58,7 +63,7 @@
             "vendor/bin/phpunit --coverage"
         ],
         "check": [
-            "@cs --dry-run",
+            "@cs --test",
             "@analyse",
             "@test"
         ]
@@ -71,9 +76,11 @@
     "config": {
         "sort-packages": true,
         "allow-plugins": {
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "pestphp/pest-plugin": true
         }
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "bin": ["mist"]
 }

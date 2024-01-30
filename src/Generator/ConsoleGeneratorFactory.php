@@ -11,15 +11,10 @@ use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Paths;
 use cebe\openapi\spec\Server;
 use cebe\openapi\SpecObjectInterface;
-use Symfony\Component\Console\Style\StyleInterface;
+use Laravel\Prompts;
 
 final class ConsoleGeneratorFactory implements GeneratorFactoryInterface
 {
-    public function __construct(
-        private readonly StyleInterface $io
-    ) {
-    }
-
     public function create(SpecObjectInterface $spec): iterable
     {
         \assert($spec instanceof OpenApi);
@@ -39,7 +34,7 @@ final class ConsoleGeneratorFactory implements GeneratorFactoryInterface
                 $spec->servers
             );
 
-            $url = $this->io->choice('Please select base url', $urls, $urls[0]);
+            $url = Prompts\select('Please select base url', $urls, $urls[0]);
         } else {
             $url = $spec->servers[0]->url;
         }
@@ -47,14 +42,14 @@ final class ConsoleGeneratorFactory implements GeneratorFactoryInterface
         try {
             Assertion::url($url);
         } catch (AssertionFailedException) {
-            $url = $this->io->ask('Please enter the base url');
+            $url = Prompts\text('Please enter the base url');
         }
 
         return new Connector($url);
     }
 
     /**
-     * @param  Paths|PathItem[] $paths
+     * @param  Paths|PathItem[]  $paths
      * @return Request[]
      */
     private function createRequestGenerators(iterable $paths): array
