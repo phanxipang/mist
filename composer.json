@@ -25,7 +25,7 @@
         "cebe/php-openapi": "^1.7",
         "composer/semver": "^3.4",
         "cuyz/valinor": "^1.8",
-        "fansipan/fansipan": "^0.8",
+        "fansipan/fansipan": "^1.0",
         "illuminate/view": "^10.0",
         "laravel-zero/framework": "^10.2",
         "nette/php-generator": "^3.6|^4.0",

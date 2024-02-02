@@ -23,7 +23,7 @@ final class Composer implements GeneratorInterface
             'license' => $this->info?->license?->name ?? 'MIT',
             'require' => [
                 'php' => $config->package->phpVersion,
-                'fansipan/fansipan' => '^0.8',
+                'fansipan/fansipan' => '^1.0',
             ],
             'autoload' => [
                 'psr-4' => [
