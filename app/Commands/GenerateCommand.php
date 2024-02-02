@@ -9,6 +9,8 @@ use Fansipan\Mist\Config\Author;
 use Fansipan\Mist\Config\Config;
 use Fansipan\Mist\Config\Output;
 use Fansipan\Mist\Config\PackageMetadata;
+use Fansipan\Mist\Event\ReadingSpecFile;
+use Fansipan\Mist\Event\SdkFileGenerated;
 use Fansipan\Mist\Generator\GeneratorFactoryInterface;
 use Fansipan\Mist\Runner;
 use Illuminate\Console\Scheduling\Schedule;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
 use Laravel\Prompts;
 use LaravelZero\Framework\Commands\Command;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Filesystem\Path;
 
 final class GenerateCommand extends Command implements PromptsForMissingInput
@@ -46,9 +49,11 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
      *
      * @return int
      */
-    public function handle(GeneratorFactoryInterface $factory)
+    public function handle(GeneratorFactoryInterface $factory, EventDispatcherInterface $event)
     {
         $this->render('<div class="m-1 px-1 bg-green-300">Fansipan Mist</div>');
+
+        // $this->bindEvents($event);
 
         $outputDir = $this->resolvePath($this->option('output'));
 
@@ -60,7 +65,7 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
                 (bool) $this->option('force')
             );
 
-            $results = (new Runner($factory))->run($config);
+            $results = (new Runner($factory, $event))->generate($config);
 
             foreach ($results[0] ?? [] as $exception) {
                 /** @var \Amp\Parallel\Worker\TaskFailureException $exception */
@@ -96,6 +101,13 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
 
             return self::FAILURE;
         }
+    }
+
+    private function bindEvents(EventDispatcherInterface $event): void
+    {
+        // $progress = Prompts\progress('Generating..', 20);
+        // $event->addListener(SdkFileGenerated::class, static fn () => $progress->advanced());
+        // $event->addListener(ReadingSpecFile::class, fn () => $this->info('Reading spec file'));
     }
 
     private function resolvePath(string $path): string
