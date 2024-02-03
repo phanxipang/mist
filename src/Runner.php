@@ -12,26 +12,23 @@ use cebe\openapi\Reader;
 use cebe\openapi\spec\OpenApi;
 use Fansipan\Mist\Config\Config;
 use Fansipan\Mist\Event\SdkFileGenerated;
-use Fansipan\Mist\Event\SpecFileLoaded;
-use Fansipan\Mist\Generator\GeneratorFactoryInterface;
 use Fansipan\Mist\Generator\GeneratorInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 final class Runner
 {
+    /**
+     * @param  iterable<GeneratorInterface>  $generators
+     */
     public function __construct(
-        private readonly GeneratorFactoryInterface $factory,
+        private readonly iterable $generators,
         private readonly ?EventDispatcherInterface $event = null,
     ) {
     }
 
     public function generate(Config $config): iterable
     {
-        $spec = $this->createSpecFromFile($config->spec);
-
-        $this->event?->dispatch(new SpecFileLoaded($config->spec));
-
-        $tasks = Pipeline::fromIterable($this->factory->create($spec))
+        $tasks = Pipeline::fromIterable($this->generators)
             // ->map(static fn (GeneratorInterface $generator): Task => new WriteTask($generator, $config))
             // ->map(static fn (Task $task): Future => Worker\submit($task)->getFuture())
             ->map(fn (GeneratorInterface $generator) => $this->createTask($generator, $config))
@@ -52,7 +49,7 @@ final class Runner
             });
     }
 
-    private function createSpecFromFile(string $path): OpenApi
+    public static function loadSpec(string $path): OpenApi
     {
         $json = false;
 

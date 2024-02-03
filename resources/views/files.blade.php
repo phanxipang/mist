@@ -6,7 +6,7 @@
     @foreach ($files as $file)
         <div>
             <div class="flex space-x-1">
-                <span class="font-bold">{{ basename($file->name) }}</span>
+                <span class="font-bold">{{ $file->filename }}</span>
                 <span class="text-gray">[{{ str_replace($outputDir, '', dirname($file->name)) }}]</span>
                 <span class="flex-1 content-repeat-[.] text-gray"></span>
                 <span class="text-green">Success</span>

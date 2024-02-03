@@ -22,6 +22,7 @@
         "amphp/pipeline": "^1.1",
         "archtechx/enums": "^1.0",
         "beberlei/assert": "^3.3",
+        "bentools/rewindable-generator": "^1.2",
         "cebe/php-openapi": "^1.7",
         "composer/semver": "^3.4",
         "cuyz/valinor": "^1.8",

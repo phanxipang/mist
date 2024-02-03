@@ -6,6 +6,7 @@ namespace Fansipan\Mist\Generator;
 
 use Assert\Assertion;
 use Assert\AssertionFailedException;
+use BenTools\RewindableGenerator;
 use cebe\openapi\spec\OpenApi;
 use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Paths;
@@ -19,14 +20,18 @@ final class ConsoleGeneratorFactory implements GeneratorFactoryInterface
     {
         \assert($spec instanceof OpenApi);
 
-        yield new Composer($spec->info);
+        $generators = function (OpenApi $spec) {
+            yield 'composer' => new Composer($spec->info);
 
-        yield $this->createConnectorGenerator($spec);
+            yield from $this->createConnectorGenerator($spec);
 
-        yield from $this->createRequestGenerators($spec->paths);
+            yield from $this->createRequestGenerators($spec->paths);
+        };
+
+        return new RewindableGenerator($generators($spec));
     }
 
-    private function createConnectorGenerator(OpenApi $spec): Connector
+    private function createConnectorGenerator(OpenApi $spec): \Generator
     {
         if (count($spec->servers) > 1) {
             $urls = \array_map(
@@ -45,23 +50,18 @@ final class ConsoleGeneratorFactory implements GeneratorFactoryInterface
             $url = Prompts\text('Please enter the base url');
         }
 
-        return new Connector($url);
+        yield 'connector' => new Connector($url);
     }
 
     /**
      * @param  Paths|PathItem[]  $paths
-     * @return Request[]
      */
-    private function createRequestGenerators(iterable $paths): array
+    private function createRequestGenerators(iterable $paths): \Generator
     {
-        $generator = [];
-
         foreach ($paths as $path => $pathItem) {
             foreach ($pathItem->getOperations() as $method => $operation) {
-                $generator[] = new Request($operation, $method, $path);
+                yield $operation->operationId => new Request($operation, $method, $path);
             }
         }
-
-        return $generator;
     }
 }

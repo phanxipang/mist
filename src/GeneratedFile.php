@@ -12,11 +12,14 @@ final class GeneratedFile
 {
     public readonly string $name;
 
+    public readonly string $filename;
+
     public function __construct(
         string|array $name,
         private readonly string $content
     ) {
         $this->name = \is_array($name) ? Path::join(...\array_filter($name)) : $name;
+        $this->filename = \basename($this->name);
     }
 
     public function save(bool $force = false): void

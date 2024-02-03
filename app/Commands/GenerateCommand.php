@@ -9,11 +9,11 @@ use Fansipan\Mist\Config\Author;
 use Fansipan\Mist\Config\Config;
 use Fansipan\Mist\Config\Output;
 use Fansipan\Mist\Config\PackageMetadata;
-use Fansipan\Mist\Event\ReadingSpecFile;
 use Fansipan\Mist\Event\SdkFileGenerated;
 use Fansipan\Mist\Generator\GeneratorFactoryInterface;
 use Fansipan\Mist\Runner;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Console\PromptsForMissingInput;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
@@ -49,9 +49,12 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
      *
      * @return int
      */
-    public function handle(GeneratorFactoryInterface $factory, EventDispatcherInterface $event)
-    {
-        $this->render('<div class="m-1 px-1 bg-green-300">Fansipan Mist</div>');
+    public function handle(
+        GeneratorFactoryInterface $factory,
+        EventDispatcherInterface $event,
+        Repository $config,
+    ) {
+        $this->render('<div class="m-1 px-1 bg-green-300">'.sprintf('Fansipan Mist %s', $config->get('app.version')).'</div>');
 
         // $this->bindEvents($event);
 
@@ -65,7 +68,21 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
                 (bool) $this->option('force')
             );
 
-            $results = (new Runner($factory, $event))->generate($config);
+            $spec = Prompts\spin(static fn () => Runner::loadSpec($config->spec), 'Loading spec...');
+
+            $generators = $factory->create($spec);
+
+            /** @var Prompts\Progress $progress */
+            $progress = Prompts\progress('Generating...', \iterator_count($generators));
+
+            $event->addListener(SdkFileGenerated::class, fn (SdkFileGenerated $event) => $progress
+                ->hint($event->file->filename)
+                ->advance());
+
+            $results = (new Runner($generators, $event))
+                ->generate($config);
+
+            $progress->label('Done')->finish();
 
             foreach ($results[0] ?? [] as $exception) {
                 /** @var \Amp\Parallel\Worker\TaskFailureException $exception */
@@ -82,6 +99,8 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
 
                 $this->getOutput()->error($messages);
             }
+
+            $this->getOutput()->writeln('');
 
             $this->render(view('message', [
                 'label' => 'OK',
@@ -107,7 +126,6 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
     {
         // $progress = Prompts\progress('Generating..', 20);
         // $event->addListener(SdkFileGenerated::class, static fn () => $progress->advanced());
-        // $event->addListener(ReadingSpecFile::class, fn () => $this->info('Reading spec file'));
     }
 
     private function resolvePath(string $path): string
