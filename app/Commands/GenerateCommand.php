@@ -11,6 +11,7 @@ use Fansipan\Mist\Config\Output;
 use Fansipan\Mist\Config\PackageMetadata;
 use Fansipan\Mist\Event\SdkFileGenerated;
 use Fansipan\Mist\Generator\GeneratorFactoryInterface;
+use Fansipan\Mist\GeneratorMessage;
 use Fansipan\Mist\Runner;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Config\Repository;
@@ -75,7 +76,7 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
             /** @var Prompts\Progress $progress */
             $progress = Prompts\progress('Generating...', \iterator_count($generators));
 
-            $event->addListener(SdkFileGenerated::class, fn (SdkFileGenerated $event) => $progress
+            $event->addListener(GeneratorMessage::class, fn (GeneratorMessage $event) => $progress
                 ->hint($event->file->filename)
                 ->advance());
 

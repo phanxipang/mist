@@ -11,7 +11,6 @@ use Amp\Pipeline\Pipeline;
 use cebe\openapi\Reader;
 use cebe\openapi\spec\OpenApi;
 use Fansipan\Mist\Config\Config;
-use Fansipan\Mist\Event\SdkFileGenerated;
 use Fansipan\Mist\Generator\GeneratorInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -42,11 +41,14 @@ final class Runner
     {
         return Worker\submit(new WriteTask($generator, $config))
             ->getFuture()
-            ->map(function (GeneratedFile $file) {
-                $this->event?->dispatch(new SdkFileGenerated($file));
+            ->map($this->handleMessage(...));
+    }
 
-                return $file;
-            });
+    private function handleMessage(GeneratorMessage $message): GeneratorMessage
+    {
+        $this->event?->dispatch($message);
+
+        return $message;
     }
 
     public static function loadSpec(string $path): OpenApi
