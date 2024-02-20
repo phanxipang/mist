@@ -27,7 +27,8 @@ final class Connector implements GeneratorInterface
         $namespace->addUse(ConnectorInterface::class)
             ->addUse(ConnectorTrait::class);
 
-        $class = $namespace->addClass('Connector');
+        $filename = \rtrim($config->output->files['connector'] ?? 'Connector', '.php');
+        $class = $namespace->addClass($filename);
 
         $class->addImplement(ConnectorInterface::class)
             ->addTrait(ConnectorTrait::class);
@@ -39,7 +40,7 @@ final class Connector implements GeneratorInterface
             ->addBody('return ?;', [$this->baseUri]);
 
         return new GeneratedFile(
-            [$config->output->directory, $config->output->paths->src, 'Connector.php'],
+            [$config->output->directory, $config->output->paths->src, $filename.'.php'],
             $this->print($file)
         );
     }

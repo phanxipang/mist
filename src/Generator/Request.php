@@ -6,7 +6,7 @@ namespace Fansipan\Mist\Generator;
 
 use cebe\openapi\spec\Operation;
 use cebe\openapi\spec\Parameter;
-use cebe\openapi\spec\Reference;
+use cebe\openapi\spec\RequestBody;
 use cebe\openapi\spec\Schema;
 use Fansipan\Mist\Config\Config;
 use Fansipan\Mist\GeneratedFile;
@@ -25,6 +25,8 @@ final class Request implements GeneratorInterface
 
     private string $namespace = 'Request';
 
+    private string $contentType;
+
     private ParameterCollection $parameters;
 
     public function __construct(
@@ -32,6 +34,14 @@ final class Request implements GeneratorInterface
         private readonly string $method,
         private readonly string $path,
     ) {
+    }
+
+    public function withContent(string $contentType): self
+    {
+        $clone = clone $this;
+        $clone->contentType = $contentType;
+
+        return $clone;
     }
 
     public function withNamespace(string $namespace): self
@@ -82,18 +92,29 @@ final class Request implements GeneratorInterface
 
     private function addConstructorParameters(ClassType $class, string $minimumPhpVersion): void
     {
-        if ($this->parameters()->isEmpty()) {
+        if ($this->parameters()->isEmpty() && \is_null($this->spec->requestBody)) {
             return;
         }
 
         $feature = new PhpFeature($minimumPhpVersion);
         $method = $class->addMethod('__construct');
 
-        foreach ($this->parameters()->sortByDesc('required') as $parameter) {
-            $schema = $parameter->schema instanceof Reference
-                ? $parameter->schema->resolve()
-                : $parameter->schema;
+        if ($this->spec->requestBody) {
+            $requestBody = $this->resolveSpecRef($this->spec->requestBody);
+            \assert($requestBody instanceof RequestBody);
 
+            $contentType = $this->contentType ?: \array_key_first($requestBody->content);
+            // Todo: set param
+            // $mediaType = $requestBody->content[$contentType] ?? null;
+
+            if ($trait = ContentTypeResolver::resolve($contentType)) {
+                $class->getNamespace()->addUse($trait);
+                $class->addTrait($trait);
+            }
+        }
+
+        foreach ($this->parameters()->sortByDesc('required') as $parameter) {
+            $schema = $this->resolveSpecRef($parameter->schema);
             \assert($schema instanceof Schema);
 
             $paramType = (string) ParameterType::fromSchema($schema);

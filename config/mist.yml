@@ -4,6 +4,6 @@ output:
     src: /src
     tests: /tests
   files:
-    connector: Connector.php
+    connector: Connector
 options:
   groupRequestsByTag: true

@@ -9,7 +9,6 @@ use Fansipan\Mist\Config\Author;
 use Fansipan\Mist\Config\Config;
 use Fansipan\Mist\Config\Output;
 use Fansipan\Mist\Config\PackageMetadata;
-use Fansipan\Mist\Event\SdkFileGenerated;
 use Fansipan\Mist\Generator\GeneratorFactoryInterface;
 use Fansipan\Mist\GeneratorMessage;
 use Fansipan\Mist\Runner;
@@ -57,8 +56,6 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
     ) {
         $this->render('<div class="m-1 px-1 bg-green-300">'.sprintf('Fansipan Mist %s', $config->get('app.version')).'</div>');
 
-        // $this->bindEvents($event);
-
         $outputDir = $this->resolvePath($this->option('output'));
 
         try {
@@ -75,10 +72,9 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
 
             /** @var Prompts\Progress $progress */
             $progress = Prompts\progress('Generating...', \iterator_count($generators));
+            $this->getOutput()->writeln('');
 
-            $event->addListener(GeneratorMessage::class, fn (GeneratorMessage $event) => $progress
-                ->hint($event->file->filename)
-                ->advance());
+            $event->addListener(GeneratorMessage::class, fn (GeneratorMessage $event) => $progress->advance());
 
             $results = (new Runner($generators, $event))
                 ->generate($config);
@@ -101,8 +97,6 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
                 $this->getOutput()->error($messages);
             }
 
-            $this->getOutput()->writeln('');
-
             $this->render(view('message', [
                 'label' => 'OK',
                 'message' => sprintf('SDK generated successfully at <span class="text-blue-300">%s</span>', $config->output->directory),
@@ -121,12 +115,6 @@ final class GenerateCommand extends Command implements PromptsForMissingInput
 
             return self::FAILURE;
         }
-    }
-
-    private function bindEvents(EventDispatcherInterface $event): void
-    {
-        // $progress = Prompts\progress('Generating..', 20);
-        // $event->addListener(SdkFileGenerated::class, static fn () => $progress->advanced());
     }
 
     private function resolvePath(string $path): string

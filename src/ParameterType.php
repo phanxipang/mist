@@ -39,7 +39,7 @@ final class ParameterType implements \Stringable
     public static function fromSchema(Schema|Reference $schema): self
     {
         $schema = $schema instanceof Reference
-            ? $schema->resolveReferences()
+            ? $schema->resolve()
             : $schema;
 
         \assert($schema instanceof Schema);

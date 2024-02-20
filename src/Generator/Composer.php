@@ -27,12 +27,12 @@ final class Composer implements GeneratorInterface
             ],
             'autoload' => [
                 'psr-4' => [
-                    $config->package->namespace.'\\' => '/'.trim($config->output->paths->src, '/'),
+                    $config->package->namespace.'\\' => '/'.\trim($config->output->paths->src, '/'),
                 ],
             ],
             'autoload-dev' => [
                 'psr-4' => [
-                    $config->package->namespace.'\\Tests\\' => '/'.trim($config->output->paths->tests, '/'),
+                    $config->package->namespace.'\\Tests\\' => '/'.\trim($config->output->paths->tests, '/'),
                 ],
             ],
             'config' => [

@@ -12,9 +12,13 @@ final class Output
 {
     public readonly string $directory;
 
+    /**
+     * @param  array<string, string|array<string, string>>  $files
+     */
     public function __construct(
         string $directory,
         public readonly Paths $paths,
+        public readonly array $files = [],
     ) {
         $this->directory = Path::isAbsolute(Path::canonicalize($directory)) ? $directory : Path::join(\getcwd() ?: './', $directory);
     }

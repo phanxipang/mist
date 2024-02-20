@@ -10,7 +10,9 @@ use BenTools\RewindableGenerator;
 use cebe\openapi\spec\OpenApi;
 use cebe\openapi\spec\PathItem;
 use cebe\openapi\spec\Paths;
+use cebe\openapi\spec\Schema;
 use cebe\openapi\spec\Server;
+use cebe\openapi\spec\Type;
 use cebe\openapi\SpecObjectInterface;
 use Laravel\Prompts;
 
@@ -22,10 +24,9 @@ final class ConsoleGeneratorFactory implements GeneratorFactoryInterface
 
         $generators = function (OpenApi $spec) {
             yield 'composer' => new Composer($spec->info);
-
             yield from $this->createConnectorGenerator($spec);
-
             yield from $this->createRequestGenerators($spec->paths);
+            yield from $this->createSchemaGenerators($spec->components?->schemas);
         };
 
         return new RewindableGenerator($generators($spec));
@@ -60,7 +61,40 @@ final class ConsoleGeneratorFactory implements GeneratorFactoryInterface
     {
         foreach ($paths as $path => $pathItem) {
             foreach ($pathItem->getOperations() as $method => $operation) {
-                yield $operation->operationId => new Request($operation, $method, $path);
+                $request = new Request($operation, $method, $path);
+
+                if (! empty($operation->requestBody->content)) {
+                    $contentTypes = \array_keys($operation->requestBody->content);
+
+                    if (\count($contentTypes) > 1) {
+                        $content = Prompts\select(
+                            'Please select content type for request '.$operation->operationId,
+                            $contentTypes,
+                            $contentTypes[0]
+                        );
+
+                        $request = $request->withContent($content, $operation->requestBody->content[$content]);
+                    } else {
+                        $request = $request->withContent(
+                            $key = \array_key_first($operation->requestBody->content),
+                            $operation->requestBody->content[$key]
+                        );
+                    }
+                }
+
+                yield $operation->operationId => $request;
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, Schema>  $schemas
+     */
+    private function createSchemaGenerators(iterable $schemas): \Generator
+    {
+        foreach ($schemas as $name => $schema) {
+            if ($schema->type === Type::OBJECT) {
+                yield 'schema'.$name => new ValueObject($name, $schema);
             }
         }
     }
